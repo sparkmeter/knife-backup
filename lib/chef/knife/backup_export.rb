@@ -53,6 +53,12 @@ module ServerBackup
       :description => "Continue in case a permission problem occurs",
       :boolean => true
 
+    option :filter,
+      :short => "-f VALUE",
+      :long => "--filter VALUE",
+      :description => "only download this one node/client",
+      :proc => Proc.new { |filter| filter }
+
     def run
       validate!
       components = name_args.empty? ? COMPONENTS : name_args
@@ -117,6 +123,13 @@ module ServerBackup
       FileUtils.mkdir_p(dir)
       klass.list.each do |component_name, url|
         next if component == "environments" && component_name == "_default"
+        unless config[:filter].blank?
+          if ['clients', 'nodes'].include? component
+            if component_name != config[:filter]
+              next
+            end
+          end
+        end
         ui.msg "Backing up #{component} #{component_name}"
         component_obj = load_object(klass, component_name).to_hash
         unless component_obj
